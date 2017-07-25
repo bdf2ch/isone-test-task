@@ -1,3 +1,9 @@
+export interface IDomNodeAttribute {
+    key: string;
+    value: string;
+};
+
+
 /**
  * IDomNode
  * Интерфейс модели DOM-узла
