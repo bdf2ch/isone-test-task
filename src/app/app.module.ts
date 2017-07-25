@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { AppComponent } from './app.component';
 import { DynamicRendererComponent } from './dynamic-renderer/dynamic-renderer.component';
+import { InsertHereDirective } from './dynamic-renderer/insert-here.directive';
+import { DomLoaderService } from './dynamic-renderer/dom-loader.service';
 
 
 const routes: Routes = [
@@ -17,15 +19,16 @@ const routes: Routes = [
 @NgModule({
   imports: [
     BrowserModule,
-      FormsModule,
+    FormsModule,
     HttpModule,
     RouterModule.forRoot(routes)
   ],
   declarations: [
     AppComponent,
-    DynamicRendererComponent
+    DynamicRendererComponent,
+    InsertHereDirective
   ],
-  providers: [],
+  providers: [ DomLoaderService ],
   bootstrap: [ AppComponent ]
 })
 export class AppModule { }
