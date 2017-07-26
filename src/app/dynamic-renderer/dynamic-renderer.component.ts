@@ -1,40 +1,63 @@
-import { Component, Input, ViewChild, OnInit, Renderer2 } from '@angular/core';
-import { InsertHereDirective } from './insert-here.directive';
+import {
+    Component, Input, ViewChild, Renderer2, ViewContainerRef, ComponentFactoryResolver, ComponentFactory,
+    ComponentRef
+} from '@angular/core';
 import { DomLoaderService } from './dom-loader.service';
-import {IDomNode, IDomNodeAttribute} from '../dom-node.model';
+import { IDomNode } from '../dom-node.model';
+import { DynamicComponent } from '../dynamic-component/dynamic-component.component';
 
 
 @Component({
     templateUrl: './dynamic-renderer.component.html'
 })
-export class DynamicRendererComponent implements OnInit {
+export class DynamicRendererComponent {
     @Input() url: string;
-    @ViewChild(InsertHereDirective) container: InsertHereDirective;
-    source: IDomNode;
+    @ViewChild('dynamicComponentContainer', { read: ViewContainerRef }) container: ViewContainerRef;
+    private dynamicComponentRef: ComponentRef<DynamicComponent>;
 
-    constructor (private renderer: Renderer2,
+
+    constructor (private resolver: ComponentFactoryResolver,
+                 private renderer: Renderer2,
                  private loader: DomLoaderService) {};
 
 
-    ngOnInit(): void {
-        this.source = this.loader.fetchNodes();
-        console.log(this.source);
-        this.render(this.source);
-    };
-
-
-
-
-    render(rootNode: IDomNode): void {
-        let root = this.renderer.createElement(rootNode.tag);
-        rootNode.content.map((node: IDomNode) => {
-            let child = this.renderer.createElement(node.tag);
-            for (let attr in node.attributes) {
-                console.log(attr);
-                this.renderer.setAttribute(child, attr, node.attributes[attr]);
-            }
-            this.renderer.appendChild(root, child);
+    generate(): void {
+        this.loader.fetchNodes().subscribe((result: any) => {
+            const root = this.renderNodes(result);
+            const factory: ComponentFactory<DynamicComponent> = this.resolver.resolveComponentFactory(DynamicComponent);
+            this.dynamicComponentRef = this.container.createComponent(factory);
+            this.dynamicComponentRef.instance.view.element.nativeElement.children[0].children[0].appendChild(root);
         });
-        console.log(root);
     };
+
+
+
+    renderNodes(json: IDomNode, root?: any | undefined): any {
+        let node = json['tag'] ? this.renderer.createElement(json.tag) : this.renderer.createText(json.text);
+        if (!json['text'] && json['attributes']) {
+            for (let attr in json.attributes) {
+                this.renderer.setAttribute(node, attr, json.attributes[attr]);
+            }
+        }
+        if (root) {
+            this.renderer.appendChild(root, node);
+        }
+        if (json['content']) {
+            json.content.forEach((value: IDomNode, index: number, array: IDomNode[]) => {
+                this.renderNodes(value, node);
+            });
+        }
+        return node;
+    };
+
+
+
+
+
+
+        //this.container.clear();
+        //const factory: ComponentFactory<DynamicComponent> = this.resolver.resolveComponentFactory(DynamicComponent);
+        //this.dynamicComponentRef = this.container.createComponent(factory);
+        //this.dynamicComponentRef.instance.view.element.nativeElement.children[0].appendChild(root);
+
 };
