@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
-import '../assets/css/styles.css';
 
 
+/**
+ * Корневой компонент приложения
+ */
 @Component({
   selector: 'app',
   templateUrl: './app.component.html'
