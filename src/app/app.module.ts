@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { DynamicRendererComponent } from './dynamic-renderer/dynamic-renderer.component';
 import { DomLoaderService } from './dynamic-renderer/dom-loader.service';
-import { DynamicComponent } from './dynamic-component/dynamic-component.component';
 import { MockBackend } from '@angular/http/testing';
 
 
@@ -17,8 +16,7 @@ import { MockBackend } from '@angular/http/testing';
   ],
   declarations: [
     AppComponent,
-    DynamicRendererComponent,
-    DynamicComponent
+    DynamicRendererComponent
   ],
   providers: [
     DomLoaderService,
@@ -30,7 +28,6 @@ import { MockBackend } from '@angular/http/testing';
       useFactory: (backend: MockBackend, options: BaseRequestOptions) => { return new Http(backend, options); }
     }
   ],
-  entryComponents: [ DynamicComponent ],
   bootstrap: [ AppComponent ]
 })
 export class AppModule { }

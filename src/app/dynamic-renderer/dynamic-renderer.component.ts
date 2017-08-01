@@ -1,10 +1,8 @@
 import {
-    Component, Input, ViewChild, Renderer2, ViewContainerRef, ComponentFactoryResolver, ComponentFactory,
-    ComponentRef
+    Component, Input, ViewChild, Renderer2, ViewContainerRef, Compiler, NgModuleRef, NgModule, Injector
 } from '@angular/core';
 import { DomLoaderService } from './dom-loader.service';
 import { IDomNode } from '../dom-node.model';
-import { DynamicComponent } from '../dynamic-component/dynamic-component.component';
 
 
 /**
@@ -16,18 +14,21 @@ import { DynamicComponent } from '../dynamic-component/dynamic-component.compone
     templateUrl: './dynamic-renderer.component.html'
 })
 export class DynamicRendererComponent {
-    @Input() url: string;   // Url модели DOM
+    @Input() url: string;                                                               // Url модели DOM
     @ViewChild('container', { read: ViewContainerRef }) container: ViewContainerRef;    // Указатель на контейнер для загрузки
-    private dynamicComponentRef: ComponentRef<DynamicComponent>;    // Указатель на вновь созданный компонент
 
 
     /**
      * Конструктор
-     * @param resolver {ComponentFactoryResolver} - ComponentFactoryResolver injector
+     * private compiler {Compiler} - Compiler injector
+     * private module {NgModuleRef<any>} - NgModuleRef injector
+     * private injector {Injector} - Injector injector
      * @param renderer {Renderer2} - Renderer2 injector
      * @param loader {DomLoaderService} - DomLoaderService injector
      */
-    constructor (private resolver: ComponentFactoryResolver,
+    constructor (private compiler: Compiler,
+                 private module: NgModuleRef<any>,
+                 private injector: Injector,
                  private renderer: Renderer2,
                  private loader: DomLoaderService) {};
 
@@ -39,10 +40,33 @@ export class DynamicRendererComponent {
      */
     generate(): void {
         this.loader.fetchNodes(this.url).subscribe((result: any) => {
-            const root = this.renderNodes(result);
-            const factory: ComponentFactory<DynamicComponent> = this.resolver.resolveComponentFactory(DynamicComponent);
-            this.dynamicComponentRef = this.container.createComponent(factory);
-            this.dynamicComponentRef.instance.view.element.nativeElement.children[0].children[0].appendChild(root);
+            const root = document.createElement('div');
+            this.renderNodes(result, root);
+            this.renderer.addClass(root.children[0], 'dynamic-component');
+
+            // Создаем динамический компонент с построенным деревом DOM в качестве шаблона
+            const dynamicComponent = Component({
+                template: root.innerHTML,
+                styleUrls: ['../dynamic-component/dynamic-component.component.css']
+            })(class DynamicComponent {});
+
+            // Создаем модуль и объявляем в нем вновь созданный компонент
+            const dynamicModule = NgModule({
+                declarations: [ dynamicComponent ]
+            })(class DynamicModule {});
+
+            /**
+             * Компилируем созданный модуль и объявленные в нем компоненты,
+             * получаем фабрику динамического компонента, создаем динамический компонент
+             * и загружаем его в HostView родительского компонента
+             */
+            this.compiler.compileModuleAndAllComponentsAsync(dynamicModule)
+                .then((factories) => {
+                    const dynamicComponentFactory = factories.componentFactories[0];
+                    const dynamicComponentRef = dynamicComponentFactory.create(this.injector, [], null, this.module);
+                    dynamicComponentRef.instance.name = 'dynamicComponent';
+                    this.container.insert(dynamicComponentRef.hostView);
+                });
         });
     };
 
